@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
         val uri: URI?
         try {
             // Connect to local host
-            uri = URI.create("ws://172.20.10.7:3000/")
+            uri = URI.create("ws://andreyyoshua.com:3000/")
         } catch (e: URISyntaxException) {
             e.printStackTrace();
             return;

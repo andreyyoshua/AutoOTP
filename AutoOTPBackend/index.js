@@ -30,6 +30,7 @@ app.get('/', (req, res) => {
         ws.clients.forEach(socket => {
             socket.send(JSON.stringify(req.query));
         });
+        res.send("Chat Server is running on port" + expressPort);
     }
 });
 

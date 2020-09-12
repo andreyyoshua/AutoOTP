@@ -42,8 +42,9 @@ class MainActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), 1);
         } else {
             createWebSocketClient()
-            recyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true)
+            recyclerView.layoutManager = LinearLayoutManager(this)
             recyclerView.adapter = MainAdapter()
+            addData()
         }
 
     }
@@ -80,15 +81,22 @@ class MainActivity : AppCompatActivity() {
                 applicationContext, "Message Sent",
                 Toast.LENGTH_LONG
             ).show()
-            datas.add("Sending Message $msg to $phoneNo")
+            addData("Success send Message $msg to $phoneNo")
             recyclerView.adapter?.notifyDataSetChanged()
         } catch (ex: Exception) {
             Toast.makeText(
                 applicationContext, ex.message.toString(),
                 Toast.LENGTH_LONG
             ).show()
+            addData("Failed to send Message $msg to $phoneNo")
             ex.printStackTrace()
         }
+    }
+
+    private fun addData(msg: String? = null) {
+        msg?.let { datas.add(it) }
+        totalTextView.text = datas.size.toString()
+        recyclerView.adapter?.notifyDataSetChanged()
     }
 
     private fun createWebSocketClient() {
@@ -149,7 +157,7 @@ class MainActivity : AppCompatActivity() {
         };
         webSocketClient.setConnectTimeout(10000);
         webSocketClient.setReadTimeout(60000);
-        webSocketClient.enableAutomaticReconnection(5000);
+        webSocketClient.enableAutomaticReconnection(1000);
         webSocketClient.connect();
     }
 

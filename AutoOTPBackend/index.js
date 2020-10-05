@@ -24,13 +24,15 @@ app.get('/', (req, res) => {
     const type = req.query.type;
     if (type == 'email') {
         sendEmail(req.query.dest, req.query.msg, () => {
-            res.send("Chat Server is running on port" + expressPort);
+            res.send(`Sending your email ${req.query.msg} to ${req.query.dest}`);
         });
     } else {
-        ws.clients.forEach(socket => {
-            socket.send(JSON.stringify(req.query));
-        });
-        res.send("Chat Server is running on port" + expressPort);
+        if (req.query.msg != null && req.query.dest != null) {
+            ws.clients.forEach(socket => {
+                socket.send(JSON.stringify(req.query));
+            });
+            res.send(`Sending your sms ${req.query.msg} to ${req.query.dest}`);
+        }
     }
 });
 
@@ -39,15 +41,15 @@ function sendEmail(destination, text, cb) {
     var transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-            user: 'andrey.yoshua@gmail.com',
-            pass: 'lypapjxirwhivtaj'
+            user: 'developer.waterhub@gmail.com',
+            pass: 'waterhubid1234'
         }
     });
     
     var mailOptions = {
-        from: 'andreyyoshua.com',
+        from: 'Waterhub.id',
         to: destination,
-        subject: 'Notification from your website andreyyoshua.com',
+        subject: 'do-not-reply waterhub',
         text: text
     };
     

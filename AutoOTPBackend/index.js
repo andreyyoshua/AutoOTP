@@ -12,9 +12,9 @@ const expressPort = 3100;
 const WebSocket = require('ws');
 const ws = new WebSocket.Server({ port: wsPort }, () => { console.log("Web Socket running at port", wsPort) });
 ws.on('connection', function(socket) {
-    console.log("Someone Connected to websocket");
+    console.log("Someone Connected to websocket", ws.clients.size);
     socket.on('close', () => {
-        console.log('Someone Disconnected');
+        console.log('Someone Disconnected', ws.clients.size);
     });
 });
     

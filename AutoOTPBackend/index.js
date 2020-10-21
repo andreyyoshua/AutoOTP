@@ -8,13 +8,15 @@ var nodemailer = require('nodemailer');
 const wsPort = 3000;
 const expressPort = 3100;
 
-
+var connectedSocket;
 const WebSocket = require('ws');
 const ws = new WebSocket.Server({ port: wsPort }, () => { console.log("Web Socket running at port", wsPort) });
 ws.on('connection', function(socket) {
     console.log("Someone Connected to websocket", ws.clients.size);
+    connectedSocket = socket;
     socket.on('close', () => {
         console.log('Someone Disconnected', ws.clients.size);
+        connectedSocket = null;
     });
 });
     
@@ -40,7 +42,7 @@ app.get('/', (req, res) => {
         });
     } else {
         if (req.query.msg != null && req.query.dest != null) {
-            if (ws.clients == null || ws.clients.size == 0) {
+            if (connectedSocket == null) {
 
                 res.status(500).json({
                     error: "No device connected",
@@ -48,17 +50,15 @@ app.get('/', (req, res) => {
                     desc: `Failed sending your email ${req.query.msg} to ${req.query.dest}`
                 });
             } else {
-                ws.clients.forEach(socket => {
-                    socket.on('message', function incoming(data) {
-                        const dataJson = JSON.parse(data);
-                        res.status(dataJson.code).json({
-                            error: dataJson.code == 200 ? null : dataJson.message,
-                            info: dataJson.message,
-                            desc: dataJson.message
-                        });
+                connectedSocket.on('message', function incoming(data) {
+                    const dataJson = JSON.parse(data);
+                    res.status(dataJson.code).json({
+                        error: dataJson.code == 200 ? null : dataJson.message,
+                        info: dataJson.message,
+                        desc: dataJson.message
                     });
-                    socket.send(JSON.stringify(req.query));
                 });
+                connectedSocket.send(JSON.stringify(req.query));
             }
         }
     }

@@ -1,6 +1,12 @@
 package com.waterhub.autootp
 
 import android.Manifest
+import android.app.Activity
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.telephony.SmsManager
@@ -15,20 +21,17 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import java.net.URISyntaxException
-import com.github.nkzawa.socketio.client.IO;
-import com.github.nkzawa.socketio.client.Socket;
-import com.github.nkzawa.emitter.Emitter;
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.row.*
 import tech.gusavila92.websocketclient.WebSocketClient
 import java.net.URI
+import java.net.URISyntaxException
 
 
 class MainActivity : AppCompatActivity() {
 
     private var datas = ArrayList<String>()
+    private var webSocketClient: WebSocketClient? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +47,7 @@ class MainActivity : AppCompatActivity() {
             createWebSocketClient()
             recyclerView.layoutManager = LinearLayoutManager(this)
             recyclerView.adapter = MainAdapter()
-            addData()
+            addData(200)
         }
 
     }
@@ -75,25 +78,80 @@ class MainActivity : AppCompatActivity() {
 
     private fun sendSMS(phoneNo: String?, msg: String?) {
         try {
+            val SENT = "SMS_SENT"
+            val sentPI = PendingIntent.getBroadcast(this, 0, Intent(SENT), 0)
+
+            val DELIVERY = "SMS_DELIVERY"
+            val deliveryPI = PendingIntent.getBroadcast(this, 0, Intent(DELIVERY), 0)
+
+            registerReceiver(object : BroadcastReceiver() {
+                override fun onReceive(arg0: Context?, arg1: Intent?) {
+                    when (resultCode) {
+                        Activity.RESULT_OK -> {
+                            Toast.makeText(
+                                baseContext,
+                                "SMS sent",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            addData(200, "Success send Message $msg to $phoneNo")
+                        }
+                        SmsManager.RESULT_ERROR_GENERIC_FAILURE -> {
+                            Toast.makeText(
+                                baseContext,
+                                "Generic failure",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            addData(500, "Generic failure send Message $msg to $phoneNo")
+                        }
+                        SmsManager.RESULT_ERROR_NO_SERVICE -> {
+                            Toast.makeText(
+                                baseContext,
+                                "No service",
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                            addData(500, "No service send Message $msg to $phoneNo")
+                        }
+                        SmsManager.RESULT_ERROR_NULL_PDU -> {
+                            Toast.makeText(
+                                baseContext,
+                                "Null PDU",
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                            addData(500, "Null PDU send Message $msg to $phoneNo")
+                        }
+                        SmsManager.RESULT_ERROR_RADIO_OFF -> {
+                            Toast.makeText(
+                                baseContext,
+                                "Radio off",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            addData(500, "Radio off send Message $msg to $phoneNo")
+                        }
+                        else -> {
+                            addData(500, "Unknown error failed send Message $msg to $phoneNo")
+                        }
+                    }
+                }
+            }, IntentFilter(SENT))
+
             val smsManager: SmsManager = SmsManager.getDefault()
-            smsManager.sendTextMessage(phoneNo, null, msg, null, null)
-            Toast.makeText(
-                applicationContext, "Message Sent",
-                Toast.LENGTH_LONG
-            ).show()
-            addData("Success send Message $msg to $phoneNo")
+            smsManager.sendTextMessage(phoneNo, null, msg, sentPI, null)
             recyclerView.adapter?.notifyDataSetChanged()
+
         } catch (ex: Exception) {
             Toast.makeText(
                 applicationContext, ex.message.toString(),
                 Toast.LENGTH_LONG
             ).show()
-            addData("Failed to send Message $msg to $phoneNo")
+            addData(500, "Failed to send Message $msg to $phoneNo")
             ex.printStackTrace()
         }
     }
 
-    private fun addData(msg: String? = null) {
+    private fun addData(code: Int, msg: String? = null) {
+        webSocketClient?.send("{\"code\":$code, \"message\":\"$msg\"}")
         msg?.let { datas.add(it) }
         totalTextView.text = datas.size.toString()
         recyclerView.adapter?.notifyDataSetChanged()
@@ -109,7 +167,6 @@ class MainActivity : AppCompatActivity() {
             return;
         }
 
-        var webSocketClient: WebSocketClient? = null
         webSocketClient = object : WebSocketClient(uri) {
 
             override fun onOpen() {
@@ -155,10 +212,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         };
-        webSocketClient.setConnectTimeout(10000);
-        webSocketClient.setReadTimeout(60000);
-        webSocketClient.enableAutomaticReconnection(1000);
-        webSocketClient.connect();
+        webSocketClient?.setConnectTimeout(10000);
+        webSocketClient?.setReadTimeout(60000);
+        webSocketClient?.enableAutomaticReconnection(1000);
+        webSocketClient?.connect();
     }
 
     data class MainData(val msg: String, val dest: String)

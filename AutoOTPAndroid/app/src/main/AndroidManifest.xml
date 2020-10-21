@@ -3,7 +3,12 @@
     package="com.waterhub.autootp">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.SEND_SMS"/>
+    <uses-feature android:name="android.provider.Telephony" android:required="true"/>
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_MMS" />
+    <uses-permission android:name="android.permission.WRITE_SMS" />
 
     <application
         android:allowBackup="true"

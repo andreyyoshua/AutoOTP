@@ -23,15 +23,43 @@ app.get('/', (req, res) => {
     console.log(req.query);
     const type = req.query.type;
     if (type == 'email') {
-        sendEmail(req.query.dest, req.query.msg, () => {
-            res.send(`Sending your email ${req.query.msg} to ${req.query.dest}`);
+        sendEmail(req.query.dest, req.query.msg, (error, info) => {
+            if (error) {
+                res.status(500).json({
+                    error: error,
+                    info: info,
+                    desc: `Failed sending your email ${req.query.msg} to ${req.query.dest}`
+                });
+            } else {
+                res.status(200).json({
+                    error: error,
+                    info: info,
+                    desc: `Send your email ${req.query.msg} to ${req.query.dest}`
+                });
+            }
         });
     } else {
         if (req.query.msg != null && req.query.dest != null) {
-            ws.clients.forEach(socket => {
-                socket.send(JSON.stringify(req.query));
-            });
-            res.send(`Sending your sms ${req.query.msg} to ${req.query.dest}`);
+            if (ws.clients == null || ws.clients.size == 0) {
+
+                res.status(500).json({
+                    error: "No device connected",
+                    info: "Please connect an android",
+                    desc: `Failed sending your email ${req.query.msg} to ${req.query.dest}`
+                });
+            } else {
+                ws.clients.forEach(socket => {
+                    socket.on('message', function incoming(data) {
+                        const dataJson = JSON.parse(data);
+                        res.status(dataJson.code).json({
+                            error: dataJson.message,
+                            info: dataJson.message,
+                            desc: dataJson.message
+                        });
+                    });
+                    socket.send(JSON.stringify(req.query));
+                });
+            }
         }
     }
 });
@@ -59,7 +87,7 @@ function sendEmail(destination, text, cb) {
         } else {
             console.log('Email sent: ' + info.response);
         }
-        cb()
+        cb(error, info);
     });
 }
 

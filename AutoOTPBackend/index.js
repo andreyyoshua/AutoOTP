@@ -52,7 +52,7 @@ app.get('/', (req, res) => {
                     socket.on('message', function incoming(data) {
                         const dataJson = JSON.parse(data);
                         res.status(dataJson.code).json({
-                            error: dataJson.message,
+                            error: dataJson.code == 200 ? null : dataJson.message,
                             info: dataJson.message,
                             desc: dataJson.message
                         });
